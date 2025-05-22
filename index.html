@@ -171,12 +171,232 @@
       <td class="hex-col"><input id="output64" class="output"></td>
     </tr>
   </table>
+
+  <h2>8-bit (int8)</h2>
+  <table>
+    <tr>
+      <td><span id="inputi8" class="input"></span></td>
+      <td class="zerox-col"><span class="zerox">&nbsp;&nbsp;=&nbsp;&nbsp;0x</span></td>
+      <td class="output-col"><input id="outputi8-hex" class="output"></td>
+    </tr>
+  </table>
+  <table>
+    <tr>
+      <td><span id="helpi8" class="help"></span></td>
+      <td>&nbsp;&nbsp;=&nbsp;&nbsp;</td>
+      <td class="hex-col"><input id="outputi8-dec" class="output"></td>
+    </tr>
+  </table>
+
+  <h2>16-bit (int16)</h2>
+  <table>
+    <tr>
+      <td><span id="inputi16" class="input"></span></td>
+      <td class="zerox-col"><span class="zerox">&nbsp;&nbsp;=&nbsp;&nbsp;0x</span></td>
+      <td class="output-col"><input id="outputi16-hex" class="output"></td>
+    </tr>
+  </table>
+  <table>
+    <tr>
+      <td><span id="helpi16" class="help"></span></td>
+      <td>&nbsp;&nbsp;=&nbsp;&nbsp;</td>
+      <td class="hex-col"><input id="outputi16-dec" class="output"></td>
+    </tr>
+  </table>
+
+  <h2>32-bit (int32)</h2>
+  <table>
+    <tr>
+      <td><span id="inputi32" class="input"></span></td>
+      <td class="zerox-col"><span class="zerox">&nbsp;&nbsp;=&nbsp;&nbsp;0x</span></td>
+      <td class="output-col"><input id="outputi32-hex" class="output"></td>
+    </tr>
+  </table>
+  <table>
+    <tr>
+      <td><span id="helpi32" class="help"></span></td>
+      <td>&nbsp;&nbsp;=&nbsp;&nbsp;</td>
+      <td class="hex-col"><input id="outputi32-dec" class="output"></td>
+    </tr>
+</table>
 </body>
 <script src="./float16.js"></script>
 <script>
 const {Float16Array} = float16;
 
 (function () {
+
+  function loadInt(array, Bits, input, decOutput, hexOutput) {
+    const bytes = new Uint8Array(array.buffer);
+    var hexLength = bytes.length;
+
+    function reduceNumber(x) {
+      var copy = bytes.length === 1 ? new Int8Array(1) : bytes.length === 2 ? new Int16Array(1) : new Int32Array(1);
+      copy[0] = +x;
+      var value = copy[0];
+      x = value + '';
+
+      return x;
+    }
+
+    // Create table
+    let html = '<table><tr>';
+    for (let i = 0; i < bytes.length; i++) {
+      for (let j = 0; j < 8; j++) {
+        const index = (bytes.length - i) * 8 - j;
+        html += `<td class="nibble">${index}</td>`;
+      }
+    }
+    html += '</tr><tr>';
+    for (let i = 0; i < bytes.length; i++) {
+      for (let j = 0; j < 8; j++) {
+        var index = i * 8 + j;
+        var className =
+          index === 0 ? 'sign' : 'fraction';
+        html += '<td data-index="' + index + '" class="' + className + '">0</td>';
+      }
+    }
+    html += '</tr></table>';
+    input.innerHTML = html;
+
+    var elements = [];
+    for (let i = 0; i < bytes.length * 8; i++) {
+      var element = input.querySelector(`[data-index="${i}"]`);
+      element.onmouseover = () => element.classList.add('hover');
+      element.onmouseout = () => element.classList.remove('hover');
+      elements.push(element);
+    }
+
+    function extractNumber() {
+      return +(decOutput.value);
+    }
+    decOutput.onkeydown = function (e) {
+      if (e.which === 13) {
+        e.preventDefault();
+        decOutput.blur();
+      }
+
+      else if (e.which === 38) {
+        e.preventDefault();
+        decOutput.value = reduceNumber(extractNumber() + 1);
+        decOutput.select();
+        decOutput.oninput();
+      }
+
+      else if (e.which === 40) {
+        e.preventDefault();
+        decOutput.value = reduceNumber(extractNumber() - 1);
+        decOutput.select();
+        decOutput.oninput();
+      }
+    };
+    decOutput.onfocus = function () {
+      decOutput.select();
+    };
+    decOutput.oninput = function () {
+      array[0] = extractNumber();
+      render();
+    };
+    decOutput.onblur = function () {
+      render();
+    };
+
+    hexOutput.onkeydown = function (e) {
+      if (e.which === 13) {
+        e.preventDefault();
+        hexOutput.blur();
+      }
+    };
+    hexOutput.onfocus = function () {
+      hexOutput.select();
+    };
+    hexOutput.oninput = function () {
+      var hexAlphabet = '0123456789abcdefABCDEF';
+      var validHexCharas = hexOutput.value.split('').every(function (c) {
+        return hexAlphabet.split('').lastIndexOf(c) !== -1;
+      });
+      if (hexOutput.value.length > (hexLength * 2) || validHexCharas === false) {
+        hexOutput.value = hexOutput.value.slice(0, -1);
+        return;
+      }
+
+      var tmpBytes = toByteArray(hexOutput.value);
+      bytes.fill(0);
+      bytes.set(tmpBytes.reverse(), hexLength - tmpBytes.length);
+      render();
+    };
+    hexOutput.onblur = function () {
+      render();
+    };
+
+    input.onmousedown = (e) => {
+      if ('index' in e.target.dataset) {
+        var index = e.target.dataset.index | 0;
+        var byteIndex = bytes.length - (index >> 3) - 1;
+        var bitMask = 1 << (7 - (index & 7));
+        var mouseDownValue = (bytes[byteIndex] & bitMask) ? 0 : 1;
+        bytes[byteIndex] ^= bitMask;
+        render();
+
+        document.onmousemove = function (e2) {
+          if ('index' in e2.target.dataset) {
+            var index = e2.target.dataset.index | 0;
+            var byteIndex = bytes.length - (index >> 3) - 1;
+            var bitMask = 1 << (7 - (index & 7));
+            if (mouseDownValue)
+              bytes[byteIndex] |= bitMask;
+            else
+              bytes[byteIndex] &= ~bitMask;
+            render();
+          }
+        };
+
+        document.onmouseup = function () {
+          document.onmousemove = null;
+          document.onmouseup = null;
+        };
+      }
+    };
+
+    function render() {
+      for (let i = 0; i < bytes.length * 8; i++) {
+        elements[i].textContent = ((bytes[bytes.length - (i >> 3) - 1] >> (7 - (i & 7))) & 1);
+      }
+
+      // Update views according to which input was edited
+      if (document.activeElement === hexOutput) {
+        var value = array[0];
+        decOutput.value = value;
+      } else if (document.activeElement === decOutput) {
+        var tmpBytes = bytes.slice().reverse();
+        hexOutput.value = toHexString(tmpBytes);
+      } else { // This branch is for when the individual bits get toggled
+        var value = array[0];
+        decOutput.value = value;
+        var tmpBytes = bytes.slice().reverse();
+        hexOutput.value = toHexString(tmpBytes);
+      }
+    }
+
+    function toHexString(byteArray) {
+      return Array.from(byteArray, function (byte) {
+        return ('0' + byte.toString(16).toUpperCase()).slice(-2);
+      }).join('')
+    }
+
+    function toByteArray(hexString) {
+      var result = [];
+      if (hexString.length % 2 == 1) {
+        hexString = hexString + '0';
+      }
+      for (var i = 0; i < hexString.length; i += 2) {
+        result.push(parseInt(hexString.substr(i, 2), 16));
+      }
+      return result;
+    }
+
+    render();
+  }
 
   function load(array, exponentBits, input, output, help, hex) {
     var bytes = new Uint8Array(array.buffer);
@@ -448,7 +668,9 @@ const {Float16Array} = float16;
   load(new Float16Array([Math.PI]), 5, document.getElementById('input16'), document.getElementById('output16'), document.getElementById('help16'), document.getElementById('hex16'));
   load(new Float32Array([Math.PI]), 8, document.getElementById('input32'), document.getElementById('output32'), document.getElementById('help32'), document.getElementById('hex32'));
   load(new Float64Array([Math.PI]), 11, document.getElementById('input64'), document.getElementById('output64'), document.getElementById('help64'), document.getElementById('hex64'));
-
+  loadInt(new Int8Array(1), 8, document.getElementById('inputi8'), document.getElementById('outputi8-dec'), document.getElementById('outputi8-hex'));
+  loadInt(new Int16Array(1), 16, document.getElementById('inputi16'), document.getElementById('outputi16-dec'), document.getElementById('outputi16-hex'));
+  loadInt(new Int32Array(1), 32, document.getElementById('inputi32'), document.getElementById('outputi32-dec'), document.getElementById('outputi32-hex'));
 })();
 
 </script>

@@ -218,7 +218,23 @@
       <td>&nbsp;&nbsp;=&nbsp;&nbsp;</td>
       <td class="hex-col"><input id="outputi32-dec" class="output"></td>
     </tr>
-</table>
+  </table>
+
+  <h2>64-bit (int64)</h2>
+  <table>
+    <tr>
+      <td><span id="inputi64" class="input"></span></td>
+      <td class="zerox-col"><span class="zerox">&nbsp;&nbsp;=&nbsp;&nbsp;0x</span></td>
+      <td class="output-col"><input id="outputi64-hex" class="output"></td>
+    </tr>
+  </table>
+  <table>
+    <tr>
+      <td><span id="helpi64" class="help"></span></td>
+      <td>&nbsp;&nbsp;=&nbsp;&nbsp;</td>
+      <td class="hex-col"><input id="outputi64-dec" class="output"></td>
+    </tr>
+  </table>
 </body>
 <script src="./float16.js"></script>
 <script>
@@ -231,7 +247,10 @@ const {Float16Array} = float16;
     var hexLength = bytes.length;
 
     function reduceNumber(x) {
-      var copy = bytes.length === 1 ? new Int8Array(1) : bytes.length === 2 ? new Int16Array(1) : new Int32Array(1);
+      var copy = bytes.length === 1 ? new Int8Array(1) :
+                 bytes.length === 2 ? new Int16Array(1) :
+                 bytes.length === 4 ? new Int32Array(1) :
+                 new BigInt64Array(1);
       copy[0] = +x;
       var value = copy[0];
       x = value + '';
@@ -268,6 +287,7 @@ const {Float16Array} = float16;
     }
 
     function extractNumber() {
+      if (bytes.length > 4) return BigInt(+(decOutput.value))
       return +(decOutput.value);
     }
     decOutput.onkeydown = function (e) {
@@ -294,6 +314,16 @@ const {Float16Array} = float16;
       decOutput.select();
     };
     decOutput.oninput = function () {
+      var validDecCharas = decOutput.value.split('').every(function (c, i) {
+        if (i === 0 && c === '-') return true;
+        return '0123456789'.split('').lastIndexOf(c) !== -1;
+      });
+      var upperBound = (bytes.length === 1 ? 127 : bytes.length === 2 ? 32767 : bytes.length === 4 ? 2147483647 : BigInt(9223372036854775807));
+      var lowerBound = (bytes.length === 1 ? -128 : bytes.length === 2 ? -32768 : bytes.length === 4 ? -2147483648 : BigInt(-9223372036854775808));
+      if (decOutput.value > upperBound || decOutput.value < lowerBound || validDecCharas === false) {
+        decOutput.value = decOutput.value.slice(0, -1);
+        return;
+      }
       array[0] = extractNumber();
       render();
     };
@@ -671,6 +701,7 @@ const {Float16Array} = float16;
   loadInt(new Int8Array(1), 8, document.getElementById('inputi8'), document.getElementById('outputi8-dec'), document.getElementById('outputi8-hex'));
   loadInt(new Int16Array(1), 16, document.getElementById('inputi16'), document.getElementById('outputi16-dec'), document.getElementById('outputi16-hex'));
   loadInt(new Int32Array(1), 32, document.getElementById('inputi32'), document.getElementById('outputi32-dec'), document.getElementById('outputi32-hex'));
+  loadInt(new BigInt64Array(1), 64, document.getElementById('inputi64'), document.getElementById('outputi64-dec'), document.getElementById('outputi64-hex'));
 })();
 
 </script>

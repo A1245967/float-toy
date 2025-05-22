@@ -263,7 +263,11 @@ const {Float16Array} = float16;
     for (let i = 0; i < bytes.length; i++) {
       for (let j = 0; j < 8; j++) {
         const index = (bytes.length - i) * 8 - j;
-        html += `<td class="nibble">${index}</td>`;
+        if (j > 3) {
+          html += '<td class="nibble">' + index + '</td>'
+        } else {
+          html += '<td class="dark nibble">' + index + '</td>'
+        }
       }
     }
     html += '</tr><tr>';

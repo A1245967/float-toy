@@ -362,12 +362,15 @@ const {Float16Array} = float16;
     html += '</tr></table>';
     input.innerHTML = html;
 
+    // Grab elements
     var elements = [];
-    for (let i = 0; i < bytes.length * 8; i++) {
-      var element = input.querySelector(`[data-index="${i}"]`);
-      element.onmouseover = () => element.classList.add('hover');
-      element.onmouseout = () => element.classList.remove('hover');
-      elements.push(element);
+    for (var i = 0; i < bytes.length * 8; i++) {
+      (function (i) {
+        var element = input.querySelector('[data-index="' + i + '"]');
+        element.onmouseover = function () { this.classList.add('hover'); };
+        element.onmouseout = function () { this.classList.remove('hover'); };
+        elements.push(element);
+      })(i);
     }
 
     function extractNumber() {

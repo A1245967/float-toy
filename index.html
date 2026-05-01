@@ -501,7 +501,7 @@ const {Float16Array} = float16;
     let html = '<table><tr>';
     for (let i = 0; i < bytes.length; i++) {
       for (let j = 0; j < 8; j++) {
-        const index = (bytes.length - i) * 8 - j;
+        const index = (bytes.length - i) * 8 - j - 1;
         if (j > 3) {
           html += '<td class="nibble">' + index + '</td>'
         } else {
@@ -700,7 +700,7 @@ const {Float16Array} = float16;
     html += '<tr>';
     for (var i = 0; i < bytes.length; i++) {
       for (var j = 0; j < 8; j++) {
-        var index = (bytes.length - i) * 8 - j;
+        var index = (bytes.length - i) * 8 - j - 1;
         if (j > 3) {
           html += '<td class="nibble">' + index + '</td>'
         } else {

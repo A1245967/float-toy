@@ -323,7 +323,7 @@ const {Float16Array} = float16;
                bytes.length === 4 ? new Int32Array(1) :
                new BigInt64Array(1);
       }
-      copy[0] = +x;
+      copy[0] = bytes.length > 4 ? BigInt(x) : +x;
       var value = copy[0];
       x = value + '';
 
@@ -375,7 +375,10 @@ const {Float16Array} = float16;
 
     function extractNumber() {
       if (bytes.length > 4) {
-        return BigInt(+(decOutput.value));
+        if (decOutput.value === '' || decOutput.value === '-') {
+          return BigInt(0);
+        }
+        return BigInt(decOutput.value);
       }
       return +(decOutput.value);
     }
@@ -419,10 +422,27 @@ const {Float16Array} = float16;
         upperBound = 4294967295;
         lowerBound = unsigned ? 0 : -2147483648;
       } else {
-        upperBound = BigInt(18446744073709551615);
-        lowerBound = unsigned ? BigInt(0) : BigInt(-9223372036854775808);
+        upperBound = unsigned ? 18446744073709551615n : 9223372036854775807n;
+        lowerBound = unsigned ? 0n : -9223372036854775808n;
       }
-      if (decOutput.value > upperBound || decOutput.value < lowerBound || validDecCharas === false) {
+      var parsedValue;
+      if (bytes.length > 4) {
+        if (decOutput.value === '' || decOutput.value === '-') {
+          parsedValue = 0n;
+        } else {
+          try {
+            parsedValue = BigInt(decOutput.value);
+          } catch (e) {
+            parsedValue = null;
+          }
+        }
+      } else {
+        parsedValue = +(decOutput.value);
+      }
+      if (validDecCharas === false ||
+          parsedValue === null ||
+          parsedValue > upperBound ||
+          parsedValue < lowerBound) {
         decOutput.value = decOutput.value.slice(0, -1);
         return;
       }

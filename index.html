@@ -454,7 +454,7 @@ const {Float16Array} = float16;
 
       var tmpBytes = toByteArray(hexOutput.value);
       bytes.fill(0);
-      bytes.set(tmpBytes.reverse(), hexLength - tmpBytes.length);
+      bytes.set(tmpBytes.reverse(), 0);
       render();
     };
     hexOutput.onblur = function () {
@@ -519,7 +519,7 @@ const {Float16Array} = float16;
     function toByteArray(hexString) {
       var result = [];
       if (hexString.length % 2 == 1) {
-        hexString = hexString + '0';
+        hexString = '0' + hexString;
       }
       for (var i = 0; i < hexString.length; i += 2) {
         result.push(parseInt(hexString.substr(i, 2), 16));
@@ -685,7 +685,7 @@ const {Float16Array} = float16;
 
       var tmpBytes = toByteArray(hex.value);
       bytes.fill(0);
-      bytes.set(tmpBytes.reverse(), hexLength - tmpBytes.length);
+      bytes.set(tmpBytes.reverse(), 0);
       render();
     };
     hex.onblur = function () {
@@ -786,7 +786,7 @@ const {Float16Array} = float16;
     function toByteArray(hexString) {
       var result = [];
       if (hexString.length % 2 == 1) {
-        hexString = hexString + '0';
+        hexString = '0' + hexString;
       }
       for (var i = 0; i < hexString.length; i += 2) {
         result.push(parseInt(hexString.substr(i, 2), 16));

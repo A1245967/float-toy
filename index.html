@@ -64,18 +64,30 @@
     width: 100%;
   }
 
+  .value-table {
+    width: auto;
+    max-width: 100%;
+  }
+
+  .value-col {
+    width: auto;
+    white-space: nowrap;
+    text-align: left;
+  }
+
   .output {
     font: inherit;
-    padding: 5px;
-    margin: 5px;
+    padding: 5px 5px 5px 0;
+    margin: 5px 0;
     border: 0;
     outline: none;
-    width: 100%;
-    min-width: 200px;
+    width: min(48ch, calc(100vw - 180px));
+    min-width: 100px;
+    max-width: 100%;
     background: none;
     height: 26px;
     line-height: 26px;
-    box-sizing: content-box;
+    box-sizing: border-box;
   }
 
   .output:hover, .output:focus {
@@ -122,7 +134,7 @@
   .field-label {
     width: 1%;
     white-space: nowrap;
-    padding-right: 11px;
+    padding-right: 6px;
     font-size: 18px;
     line-height: 26px;
     text-align: right;
@@ -131,6 +143,25 @@
   .equals-col {
     width: 1%;
     white-space: nowrap;
+  }
+
+  .copy-btn {
+    background: none;
+    border: 1px solid #ccc;
+    padding: 5px 10px;
+    margin-left: 5px;
+    cursor: pointer;
+    font-size: 12px;
+    border-radius: 3px;
+    transition: background 0.2s;
+  }
+
+  .copy-btn:hover {
+    background: rgba(0, 0, 0, 0.1);
+  }
+
+  .copy-btn:active {
+    background: rgba(0, 0, 0, 0.2);
   }
 
 </style>
@@ -150,18 +181,18 @@
       <td class="output-col"></td>
     </tr>
   </table>
-  <table>
+  <table class="value-table">
     <tr>
       <td class="field-label">hex</td>
       <td class="equals-col">&nbsp;=&nbsp;</td>
-      <td class="hex-col"><input id="hex16" class="output"></td>
+      <td class="value-col"><input id="hex16" class="output"><button class="copy-btn" data-target="hex16">📋</button></td>
     </tr>
   </table>
-  <table>
+  <table class="value-table">
     <tr>
       <td><span id="help16" class="help"></span></td>
       <td>&nbsp;&nbsp;=&nbsp;&nbsp;</td>
-      <td class="hex-col"><input id="output16" class="output"></td>
+      <td class="value-col"><input id="output16" class="output"><button class="copy-btn" data-target="output16">📋</button></td>
     </tr>
   </table>
 
@@ -173,18 +204,18 @@
       <td class="output-col"></td>
     </tr>
   </table>
-  <table>
+  <table class="value-table">
     <tr>
       <td class="field-label">hex</td>
       <td class="equals-col">&nbsp;=&nbsp;</td>
-      <td class="hex-col"><input id="hex32" class="output"></td>
+      <td class="value-col"><input id="hex32" class="output"><button class="copy-btn" data-target="hex32">📋</button></td>
     </tr>
   </table>
-  <table>
+  <table class="value-table">
     <tr>
       <td><span id="help32" class="help"></span></td>
       <td>&nbsp;&nbsp;=&nbsp;&nbsp;</td>
-      <td class="hex-col"><input id="output32" class="output"></td>
+      <td class="value-col"><input id="output32" class="output"><button class="copy-btn" data-target="output32">📋</button></td>
     </tr>
   </table>
 
@@ -196,18 +227,18 @@
       <td class="output-col"></td>
     </tr>
   </table>
-  <table>
+  <table class="value-table">
     <tr>
       <td class="field-label">hex</td>
       <td class="equals-col">&nbsp;=&nbsp;</td>
-      <td class="hex-col"><input id="hex64" class="output"></td>
+      <td class="value-col"><input id="hex64" class="output"><button class="copy-btn" data-target="hex64">📋</button></td>
     </tr>
   </table>
-  <table>
+  <table class="value-table">
     <tr>
       <td><span id="help64" class="help"></span></td>
       <td>&nbsp;&nbsp;=&nbsp;&nbsp;</td>
-      <td class="hex-col"><input id="output64" class="output"></td>
+      <td class="value-col"><input id="output64" class="output"><button class="copy-btn" data-target="output64">📋</button></td>
     </tr>
   </table>
 
@@ -219,21 +250,21 @@
       <td class="output-col"></td>
     </tr>
   </table>
-  <table>
+  <table class="value-table">
     <tr>
       <td class="field-label">hex</td>
       <td class="equals-col">&nbsp;=&nbsp;</td>
-      <td class="hex-col"><input id="outputi8-hex" class="output"></td>
+      <td class="value-col"><input id="outputi8-hex" class="output"><button class="copy-btn" data-target="outputi8-hex">📋</button></td>
     </tr>
     <tr>
       <td class="field-label">signed</td>
       <td class="equals-col">&nbsp;=&nbsp;</td>
-      <td class="hex-col"><input id="outputi8-signed" class="output"></td>
+      <td class="value-col"><input id="outputi8-signed" class="output"><button class="copy-btn" data-target="outputi8-signed">📋</button></td>
     </tr>
     <tr>
       <td class="field-label">unsigned</td>
       <td class="equals-col">&nbsp;=&nbsp;</td>
-      <td class="hex-col"><input id="outputi8-unsigned" class="output"></td>
+      <td class="value-col"><input id="outputi8-unsigned" class="output"><button class="copy-btn" data-target="outputi8-unsigned">📋</button></td>
     </tr>
   </table>
   <table class="shift">
@@ -252,21 +283,21 @@
       <td class="output-col"></td>
     </tr>
   </table>
-  <table>
+  <table class="value-table">
     <tr>
       <td class="field-label">hex</td>
       <td class="equals-col">&nbsp;=&nbsp;</td>
-      <td class="hex-col"><input id="outputi16-hex" class="output"></td>
+      <td class="value-col"><input id="outputi16-hex" class="output"><button class="copy-btn" data-target="outputi16-hex">📋</button></td>
     </tr>
     <tr>
       <td class="field-label">signed</td>
       <td class="equals-col">&nbsp;=&nbsp;</td>
-      <td class="hex-col"><input id="outputi16-signed" class="output"></td>
+      <td class="value-col"><input id="outputi16-signed" class="output"><button class="copy-btn" data-target="outputi16-signed">📋</button></td>
     </tr>
     <tr>
       <td class="field-label">unsigned</td>
       <td class="equals-col">&nbsp;=&nbsp;</td>
-      <td class="hex-col"><input id="outputi16-unsigned" class="output"></td>
+      <td class="value-col"><input id="outputi16-unsigned" class="output"><button class="copy-btn" data-target="outputi16-unsigned">📋</button></td>
     </tr>
   </table>
   <table class="shift">
@@ -285,21 +316,21 @@
       <td class="output-col"></td>
     </tr>
   </table>
-  <table>
+  <table class="value-table">
     <tr>
       <td class="field-label">hex</td>
       <td class="equals-col">&nbsp;=&nbsp;</td>
-      <td class="hex-col"><input id="outputi32-hex" class="output"></td>
+      <td class="value-col"><input id="outputi32-hex" class="output"><button class="copy-btn" data-target="outputi32-hex">📋</button></td>
     </tr>
     <tr>
       <td class="field-label">signed</td>
       <td class="equals-col">&nbsp;=&nbsp;</td>
-      <td class="hex-col"><input id="outputi32-signed" class="output"></td>
+      <td class="value-col"><input id="outputi32-signed" class="output"><button class="copy-btn" data-target="outputi32-signed">📋</button></td>
     </tr>
     <tr>
       <td class="field-label">unsigned</td>
       <td class="equals-col">&nbsp;=&nbsp;</td>
-      <td class="hex-col"><input id="outputi32-unsigned" class="output"></td>
+      <td class="value-col"><input id="outputi32-unsigned" class="output"><button class="copy-btn" data-target="outputi32-unsigned">📋</button></td>
     </tr>
   </table>
   <table class="shift">
@@ -318,21 +349,21 @@
       <td class="output-col"></td>
     </tr>
   </table>
-  <table>
+  <table class="value-table">
     <tr>
       <td class="field-label">hex</td>
       <td class="equals-col">&nbsp;=&nbsp;</td>
-      <td class="hex-col"><input id="outputi64-hex" class="output"></td>
+      <td class="value-col"><input id="outputi64-hex" class="output"><button class="copy-btn" data-target="outputi64-hex">📋</button></td>
     </tr>
     <tr>
       <td class="field-label">signed</td>
       <td class="equals-col">&nbsp;=&nbsp;</td>
-      <td class="hex-col"><input id="outputi64-signed" class="output"></td>
+      <td class="value-col"><input id="outputi64-signed" class="output"><button class="copy-btn" data-target="outputi64-signed">📋</button></td>
     </tr>
     <tr>
       <td class="field-label">unsigned</td>
       <td class="equals-col">&nbsp;=&nbsp;</td>
-      <td class="hex-col"><input id="outputi64-unsigned" class="output"></td>
+      <td class="value-col"><input id="outputi64-unsigned" class="output"><button class="copy-btn" data-target="outputi64-unsigned">📋</button></td>
     </tr>
   </table>
   <table class="shift">
@@ -351,21 +382,21 @@
       <td class="output-col"></td>
     </tr>
   </table>
-  <table>
+  <table class="value-table">
     <tr>
       <td class="field-label">hex</td>
       <td class="equals-col">&nbsp;=&nbsp;</td>
-      <td class="hex-col"><input id="outputi128-hex" class="output"></td>
+      <td class="value-col"><input id="outputi128-hex" class="output"><button class="copy-btn" data-target="outputi128-hex">📋</button></td>
     </tr>
     <tr>
       <td class="field-label">signed</td>
       <td class="equals-col">&nbsp;=&nbsp;</td>
-      <td class="hex-col"><input id="outputi128-signed" class="output"></td>
+      <td class="value-col"><input id="outputi128-signed" class="output"><button class="copy-btn" data-target="outputi128-signed">📋</button></td>
     </tr>
     <tr>
       <td class="field-label">unsigned</td>
       <td class="equals-col">&nbsp;=&nbsp;</td>
-      <td class="hex-col"><input id="outputi128-unsigned" class="output"></td>
+      <td class="value-col"><input id="outputi128-unsigned" class="output"><button class="copy-btn" data-target="outputi128-unsigned">📋</button></td>
     </tr>
   </table>
   <table class="shift">
@@ -982,6 +1013,28 @@ const {Float16Array} = float16;
   loadInt(createIntegerStore(32), document.getElementById('inputi32'), document.getElementById('outputi32-signed'), document.getElementById('outputi32-unsigned'), document.getElementById('outputi32-hex'), document.getElementById('leftshifti32'), document.getElementById('rightshifti32'), document.getElementById('rightrightshifti32'));
   loadInt(createIntegerStore(64), document.getElementById('inputi64'), document.getElementById('outputi64-signed'), document.getElementById('outputi64-unsigned'), document.getElementById('outputi64-hex'), document.getElementById('leftshifti64'), document.getElementById('rightshifti64'), document.getElementById('rightrightshifti64'));
   loadInt(createIntegerStore(128), document.getElementById('inputi128'), document.getElementById('outputi128-signed'), document.getElementById('outputi128-unsigned'), document.getElementById('outputi128-hex'), document.getElementById('leftshifti128'), document.getElementById('rightshifti128'), document.getElementById('rightrightshifti128'));
+
+  // Add copy button functionality
+  document.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const targetId = this.dataset.target;
+      const targetField = document.getElementById(targetId);
+      if (targetField && targetField.value) {
+        navigator.clipboard.writeText(targetField.value).then(() => {
+          // Visual feedback
+          const originalText = this.textContent;
+          this.textContent = '✅';
+          setTimeout(() => {
+            this.textContent = originalText;
+          }, 1500);
+        }).catch(() => {
+          // Fallback for older browsers
+          targetField.select();
+          document.execCommand('copy');
+        });
+      }
+    });
+  });
 })();
 
 </script>

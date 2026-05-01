@@ -115,6 +115,10 @@
   span.exponent { background: #DFD; }
   span.fraction { background: #FDD; }
 
+  .shift {
+    width: 20%;
+  }
+
   .field-label {
     width: 1%;
     white-space: nowrap;
@@ -232,6 +236,13 @@
       <td class="hex-col"><input id="outputi8-unsigned" class="output"></td>
     </tr>
   </table>
+  <table class="shift">
+    <tr>
+      <td><button id="leftshifti8">&#8810;</button></td>
+      <td><button id="rightshifti8">&#8811;</button></td>
+      <td><button id="rightrightshifti8">&#8921;</button></td>
+    </tr>
+  </table>
 
   <h2>16-bit (int16/uint16)</h2>
   <table>
@@ -256,6 +267,13 @@
       <td class="field-label">unsigned</td>
       <td class="equals-col">&nbsp;=&nbsp;</td>
       <td class="hex-col"><input id="outputi16-unsigned" class="output"></td>
+    </tr>
+  </table>
+  <table class="shift">
+    <tr>
+      <td><button id="leftshifti16">&#8810;</button></td>
+      <td><button id="rightshifti16">&#8811;</button></td>
+      <td><button id="rightrightshifti16">&#8921;</button></td>
     </tr>
   </table>
 
@@ -284,6 +302,13 @@
       <td class="hex-col"><input id="outputi32-unsigned" class="output"></td>
     </tr>
   </table>
+  <table class="shift">
+    <tr>
+      <td><button id="leftshifti32">&#8810;</button></td>
+      <td><button id="rightshifti32">&#8811;</button></td>
+      <td><button id="rightrightshifti32">&#8921;</button></td>
+    </tr>
+  </table>
 
   <h2>64-bit (int64/uint64)</h2>
   <table>
@@ -310,6 +335,13 @@
       <td class="hex-col"><input id="outputi64-unsigned" class="output"></td>
     </tr>
   </table>
+  <table class="shift">
+    <tr>
+      <td><button id="leftshifti64">&#8810;</button></td>
+      <td><button id="rightshifti64">&#8811;</button></td>
+      <td><button id="rightrightshifti64">&#8921;</button></td>
+    </tr>
+  </table>
 
   <h2>128-bit (int128/uint128)</h2>
   <table>
@@ -334,6 +366,13 @@
       <td class="field-label">unsigned</td>
       <td class="equals-col">&nbsp;=&nbsp;</td>
       <td class="hex-col"><input id="outputi128-unsigned" class="output"></td>
+    </tr>
+  </table>
+  <table class="shift">
+    <tr>
+      <td><button id="leftshifti128">&#8810;</button></td>
+      <td><button id="rightshifti128">&#8811;</button></td>
+      <td><button id="rightrightshifti128">&#8921;</button></td>
     </tr>
   </table>
 </body>
@@ -388,7 +427,7 @@ const {Float16Array} = float16;
     };
   }
 
-  function loadInt(store, input, signedOutput, unsignedOutput, hexOutput) {
+  function loadInt(store, input, signedOutput, unsignedOutput, hexOutput, leftshift, rightshift, rightrightshift) {
     const bytes = store.bytes;
     var hexLength = bytes.length;
     const step = store.useBigInt ? 1n : 1;
@@ -631,6 +670,38 @@ const {Float16Array} = float16;
         result.push(parseInt(hexString.substr(i, 2), 16));
       }
       return result;
+    }
+
+    leftshift.onmousedown = function () {
+      var carry = 0;
+      for (var i = 0; i < bytes.length; i++) {
+        var v = bytes[i] << 1;
+        bytes[i] = v | (carry ? 0x1 : 0x0);
+        carry = v & 0x100;
+      }
+      render();
+    }
+    rightshift.onmousedown = function () {
+      var sign = bytes[bytes.length - 1] & 0x80;
+      var carry = 0;
+      for (var i = bytes.length - 1; i >= 0; i--) {
+        var c = bytes[i] & 1;
+        var v = bytes[i] >> 1;
+        bytes[i] = v | (carry ? 0x80 : 0x0);
+        carry = c;
+      }
+      if (sign) bytes[bytes.length - 1] |= 0x80;
+      render();
+    }
+    rightrightshift.onmousedown = function () {
+      var carry = 0;
+      for (var i = bytes.length - 1; i >= 0; i--) {
+        var c = bytes[i] & 1;
+        var v = bytes[i] >> 1;
+        bytes[i] = v | (carry ? 0x80 : 0x0);
+        carry = c;
+      }
+      render();
     }
 
     render();
@@ -906,11 +977,11 @@ const {Float16Array} = float16;
   load(new Float16Array([Math.PI]), 5, document.getElementById('input16'), document.getElementById('output16'), document.getElementById('help16'), document.getElementById('hex16'));
   load(new Float32Array([Math.PI]), 8, document.getElementById('input32'), document.getElementById('output32'), document.getElementById('help32'), document.getElementById('hex32'));
   load(new Float64Array([Math.PI]), 11, document.getElementById('input64'), document.getElementById('output64'), document.getElementById('help64'), document.getElementById('hex64'));
-  loadInt(createIntegerStore(8), document.getElementById('inputi8'), document.getElementById('outputi8-signed'), document.getElementById('outputi8-unsigned'), document.getElementById('outputi8-hex'));
-  loadInt(createIntegerStore(16), document.getElementById('inputi16'), document.getElementById('outputi16-signed'), document.getElementById('outputi16-unsigned'), document.getElementById('outputi16-hex'));
-  loadInt(createIntegerStore(32), document.getElementById('inputi32'), document.getElementById('outputi32-signed'), document.getElementById('outputi32-unsigned'), document.getElementById('outputi32-hex'));
-  loadInt(createIntegerStore(64), document.getElementById('inputi64'), document.getElementById('outputi64-signed'), document.getElementById('outputi64-unsigned'), document.getElementById('outputi64-hex'));
-  loadInt(createIntegerStore(128), document.getElementById('inputi128'), document.getElementById('outputi128-signed'), document.getElementById('outputi128-unsigned'), document.getElementById('outputi128-hex'));
+  loadInt(createIntegerStore(8), document.getElementById('inputi8'), document.getElementById('outputi8-signed'), document.getElementById('outputi8-unsigned'), document.getElementById('outputi8-hex'), document.getElementById('leftshifti8'), document.getElementById('rightshifti8'), document.getElementById('rightrightshifti8'));
+  loadInt(createIntegerStore(16), document.getElementById('inputi16'), document.getElementById('outputi16-signed'), document.getElementById('outputi16-unsigned'), document.getElementById('outputi16-hex'), document.getElementById('leftshifti16'), document.getElementById('rightshifti16'), document.getElementById('rightrightshifti16'));
+  loadInt(createIntegerStore(32), document.getElementById('inputi32'), document.getElementById('outputi32-signed'), document.getElementById('outputi32-unsigned'), document.getElementById('outputi32-hex'), document.getElementById('leftshifti32'), document.getElementById('rightshifti32'), document.getElementById('rightrightshifti32'));
+  loadInt(createIntegerStore(64), document.getElementById('inputi64'), document.getElementById('outputi64-signed'), document.getElementById('outputi64-unsigned'), document.getElementById('outputi64-hex'), document.getElementById('leftshifti64'), document.getElementById('rightshifti64'), document.getElementById('rightrightshifti64'));
+  loadInt(createIntegerStore(128), document.getElementById('inputi128'), document.getElementById('outputi128-signed'), document.getElementById('outputi128-unsigned'), document.getElementById('outputi128-hex'), document.getElementById('leftshifti128'), document.getElementById('rightshifti128'), document.getElementById('rightrightshifti128'));
 })();
 
 </script>

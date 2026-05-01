@@ -236,6 +236,22 @@
     </tr>
   </table>
 
+  <h2>128-bit (int128)</h2>
+  <table>
+    <tr>
+      <td><span id="inputi128" class="input"></span></td>
+      <td class="zerox-col"><span class="zerox">&nbsp;&nbsp;=&nbsp;&nbsp;0x</span></td>
+      <td class="output-col"><input id="outputi128-hex" class="output"></td>
+    </tr>
+  </table>
+  <table>
+    <tr>
+      <td><span id="helpi128" class="help"></span></td>
+      <td>&nbsp;&nbsp;=&nbsp;&nbsp;</td>
+      <td class="hex-col"><input id="outputi128-dec" class="output"></td>
+    </tr>
+  </table>
+
   <h2>8-bit (uint8)</h2>
   <table>
     <tr>
@@ -299,6 +315,22 @@
       <td class="hex-col"><input id="outputiu64-dec" class="output"></td>
     </tr>
   </table>
+
+  <h2>128-bit (uint128)</h2>
+  <table>
+    <tr>
+      <td><span id="inputiu128" class="input"></span></td>
+      <td class="zerox-col"><span class="zerox">&nbsp;&nbsp;=&nbsp;&nbsp;0x</span></td>
+      <td class="output-col"><input id="outputiu128-hex" class="output"></td>
+    </tr>
+  </table>
+  <table>
+    <tr>
+      <td><span id="helpiu128" class="help"></span></td>
+      <td>&nbsp;&nbsp;=&nbsp;&nbsp;</td>
+      <td class="hex-col"><input id="outputiu128-dec" class="output"></td>
+    </tr>
+  </table>
 </body>
 <script src="./float16.js"></script>
 <script>
@@ -306,28 +338,56 @@ const {Float16Array} = float16;
 
 (function () {
 
-  function loadInt(array, unsigned, input, decOutput, hexOutput) {
-    const bytes = new Uint8Array(array.buffer);
+  function createIntegerStore(bits, unsigned) {
+    const byteLength = bits / 8;
+    const bytes = new Uint8Array(byteLength);
+    const useBigInt = bits > 32;
+    const modulus = 1n << BigInt(bits);
+    const signBit = 1n << BigInt(bits - 1);
+
+    function toUnsignedBigInt() {
+      let value = 0n;
+      for (let i = bytes.length - 1; i >= 0; i--) {
+        value = (value << 8n) | BigInt(bytes[i]);
+      }
+      return value;
+    }
+
+    return {
+      bits,
+      bytes,
+      useBigInt,
+      get() {
+        let value = toUnsignedBigInt();
+        if (!unsigned && (value & signBit)) {
+          value -= modulus;
+        }
+        return useBigInt ? value : Number(value);
+      },
+      set(value) {
+        let bigValue = typeof value === 'bigint' ? value : BigInt(value);
+        bigValue %= modulus;
+        if (bigValue < 0) {
+          bigValue += modulus;
+        }
+
+        for (let i = 0; i < bytes.length; i++) {
+          bytes[i] = Number(bigValue & 0xFFn);
+          bigValue >>= 8n;
+        }
+      }
+    };
+  }
+
+  function loadInt(store, unsigned, input, decOutput, hexOutput) {
+    const bytes = store.bytes;
     var hexLength = bytes.length;
+    const step = store.useBigInt ? 1n : 1;
 
     function reduceNumber(x) {
-      var copy;
-      if (unsigned) {
-        copy = bytes.length === 1 ? new Uint8Array(1) :
-               bytes.length === 2 ? new Uint16Array(1) :
-               bytes.length === 4 ? new Uint32Array(1) :
-               new BigUint64Array(1);
-      } else {
-        copy = bytes.length === 1 ? new Int8Array(1) :
-               bytes.length === 2 ? new Int16Array(1) :
-               bytes.length === 4 ? new Int32Array(1) :
-               new BigInt64Array(1);
-      }
-      copy[0] = bytes.length > 4 ? BigInt(x) : +x;
-      var value = copy[0];
-      x = value + '';
-
-      return x;
+      const copy = createIntegerStore(bytes.length * 8, unsigned);
+      copy.set(x);
+      return copy.get() + '';
     }
 
     // Create table
@@ -374,9 +434,9 @@ const {Float16Array} = float16;
     }
 
     function extractNumber() {
-      if (bytes.length > 4) {
+      if (store.useBigInt) {
         if (decOutput.value === '' || decOutput.value === '-') {
-          return BigInt(0);
+          return 0n;
         }
         return BigInt(decOutput.value);
       }
@@ -390,14 +450,14 @@ const {Float16Array} = float16;
 
       else if (e.which === 38) {
         e.preventDefault();
-        decOutput.value = reduceNumber(extractNumber() + 1);
+        decOutput.value = reduceNumber(extractNumber() + step);
         decOutput.select();
         decOutput.oninput();
       }
 
       else if (e.which === 40) {
         e.preventDefault();
-        decOutput.value = reduceNumber(extractNumber() - 1);
+        decOutput.value = reduceNumber(extractNumber() - step);
         decOutput.select();
         decOutput.oninput();
       }
@@ -412,21 +472,23 @@ const {Float16Array} = float16;
       });
 
       var lowerBound, upperBound;
-      if (bytes.length === 1) {
-        upperBound = 255;
-        lowerBound = unsigned ? 0 : -128;
-      } else if (bytes.length === 2) {
-        upperBound = 65535;
-        lowerBound = unsigned ? 0 : -32768;
-      } else if (bytes.length === 4) {
-        upperBound = 4294967295;
-        lowerBound = unsigned ? 0 : -2147483648;
+      if (store.useBigInt) {
+        upperBound = unsigned
+          ? (1n << BigInt(store.bits)) - 1n
+          : (1n << BigInt(store.bits - 1)) - 1n;
+        lowerBound = unsigned
+          ? 0n
+          : -(1n << BigInt(store.bits - 1));
       } else {
-        upperBound = unsigned ? 18446744073709551615n : 9223372036854775807n;
-        lowerBound = unsigned ? 0n : -9223372036854775808n;
+        upperBound = unsigned
+          ? Math.pow(2, store.bits) - 1
+          : Math.pow(2, store.bits - 1) - 1;
+        lowerBound = unsigned
+          ? 0
+          : -Math.pow(2, store.bits - 1);
       }
       var parsedValue;
-      if (bytes.length > 4) {
+      if (store.useBigInt) {
         if (decOutput.value === '' || decOutput.value === '-') {
           parsedValue = 0n;
         } else {
@@ -446,7 +508,7 @@ const {Float16Array} = float16;
         decOutput.value = decOutput.value.slice(0, -1);
         return;
       }
-      array[0] = extractNumber();
+      store.set(extractNumber());
       render();
     };
     decOutput.onblur = function () {
@@ -483,12 +545,14 @@ const {Float16Array} = float16;
 
     input.onmousedown = (e) => {
       if ('index' in e.target.dataset) {
+        decOutput.blur();
+        hexOutput.blur();
         var index = e.target.dataset.index | 0;
         var byteIndex = bytes.length - (index >> 3) - 1;
         var bitMask = 1 << (7 - (index & 7));
         var mouseDownValue = (bytes[byteIndex] & bitMask) ? 0 : 1;
         bytes[byteIndex] ^= bitMask;
-        render();
+        render(true);
 
         document.onmousemove = function (e2) {
           if ('index' in e2.target.dataset) {
@@ -499,7 +563,7 @@ const {Float16Array} = float16;
               bytes[byteIndex] |= bitMask;
             else
               bytes[byteIndex] &= ~bitMask;
-            render();
+            render(true);
           }
         };
 
@@ -515,19 +579,13 @@ const {Float16Array} = float16;
         elements[i].textContent = ((bytes[bytes.length - (i >> 3) - 1] >> (7 - (i & 7))) & 1);
       }
 
-      // Update views according to which input was edited
-      if (document.activeElement === hexOutput) {
-        var value = array[0];
-        decOutput.value = value;
-      } else if (document.activeElement === decOutput) {
-        var tmpBytes = bytes.slice().reverse();
-        hexOutput.value = toHexString(tmpBytes);
-      } else { // This branch is for when the individual bits get toggled
-        var value = array[0];
-        decOutput.value = value;
-        var tmpBytes = bytes.slice().reverse();
-        hexOutput.value = toHexString(tmpBytes);
-      }
+      var value = store.get();
+      var tmpBytes = bytes.slice().reverse();
+      var hexValue = toHexString(tmpBytes);
+
+      decOutput.value = value;
+      hexOutput.value = hexValue;
+      hexOutput.scrollLeft = hexOutput.scrollWidth;
     }
 
     function toHexString(byteArray) {
@@ -820,14 +878,16 @@ const {Float16Array} = float16;
   load(new Float16Array([Math.PI]), 5, document.getElementById('input16'), document.getElementById('output16'), document.getElementById('help16'), document.getElementById('hex16'));
   load(new Float32Array([Math.PI]), 8, document.getElementById('input32'), document.getElementById('output32'), document.getElementById('help32'), document.getElementById('hex32'));
   load(new Float64Array([Math.PI]), 11, document.getElementById('input64'), document.getElementById('output64'), document.getElementById('help64'), document.getElementById('hex64'));
-  loadInt(new Int8Array(1), false, document.getElementById('inputi8'), document.getElementById('outputi8-dec'), document.getElementById('outputi8-hex'));
-  loadInt(new Int16Array(1), false, document.getElementById('inputi16'), document.getElementById('outputi16-dec'), document.getElementById('outputi16-hex'));
-  loadInt(new Int32Array(1), false, document.getElementById('inputi32'), document.getElementById('outputi32-dec'), document.getElementById('outputi32-hex'));
-  loadInt(new BigInt64Array(1), false, document.getElementById('inputi64'), document.getElementById('outputi64-dec'), document.getElementById('outputi64-hex'));
-  loadInt(new Uint8Array(1), true, document.getElementById('inputiu8'), document.getElementById('outputiu8-dec'), document.getElementById('outputiu8-hex'));
-  loadInt(new Uint16Array(1), true, document.getElementById('inputiu16'), document.getElementById('outputiu16-dec'), document.getElementById('outputiu16-hex'));
-  loadInt(new Uint32Array(1), true, document.getElementById('inputiu32'), document.getElementById('outputiu32-dec'), document.getElementById('outputiu32-hex'));
-  loadInt(new BigUint64Array(1), true, document.getElementById('inputiu64'), document.getElementById('outputiu64-dec'), document.getElementById('outputiu64-hex'));
+  loadInt(createIntegerStore(8, false), false, document.getElementById('inputi8'), document.getElementById('outputi8-dec'), document.getElementById('outputi8-hex'));
+  loadInt(createIntegerStore(16, false), false, document.getElementById('inputi16'), document.getElementById('outputi16-dec'), document.getElementById('outputi16-hex'));
+  loadInt(createIntegerStore(32, false), false, document.getElementById('inputi32'), document.getElementById('outputi32-dec'), document.getElementById('outputi32-hex'));
+  loadInt(createIntegerStore(64, false), false, document.getElementById('inputi64'), document.getElementById('outputi64-dec'), document.getElementById('outputi64-hex'));
+  loadInt(createIntegerStore(128, false), false, document.getElementById('inputi128'), document.getElementById('outputi128-dec'), document.getElementById('outputi128-hex'));
+  loadInt(createIntegerStore(8, true), true, document.getElementById('inputiu8'), document.getElementById('outputiu8-dec'), document.getElementById('outputiu8-hex'));
+  loadInt(createIntegerStore(16, true), true, document.getElementById('inputiu16'), document.getElementById('outputiu16-dec'), document.getElementById('outputiu16-hex'));
+  loadInt(createIntegerStore(32, true), true, document.getElementById('inputiu32'), document.getElementById('outputiu32-dec'), document.getElementById('outputiu32-hex'));
+  loadInt(createIntegerStore(64, true), true, document.getElementById('inputiu64'), document.getElementById('outputiu64-dec'), document.getElementById('outputiu64-hex'));
+  loadInt(createIntegerStore(128, true), true, document.getElementById('inputiu128'), document.getElementById('outputiu128-dec'), document.getElementById('outputiu128-hex'));
 })();
 
 </script>

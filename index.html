@@ -196,6 +196,29 @@
     </tr>
   </table>
 
+  <h2>16-bit (bfloat16)</h2>
+  <table>
+    <tr>
+      <td><span id="inputbfloat16" class="input"></span></td>
+      <td class="zerox-col"><span class="zerox">&nbsp;&nbsp;&nbsp;</span></td>
+      <td class="output-col"></td>
+    </tr>
+  </table>
+  <table class="value-table">
+    <tr>
+      <td class="field-label">hex</td>
+      <td class="equals-col">&nbsp;=&nbsp;</td>
+      <td class="value-col"><input id="hexbfloat16" class="output"><button class="copy-btn" data-target="hexbfloat16">📋</button></td>
+    </tr>
+  </table>
+  <table class="value-table">
+    <tr>
+      <td><span id="helpbfloat16" class="help"></span></td>
+      <td>&nbsp;&nbsp;=&nbsp;&nbsp;</td>
+      <td class="value-col"><input id="outputbfloat16" class="output"><button class="copy-btn" data-target="outputbfloat16">📋</button></td>
+    </tr>
+  </table>
+
   <h2>32-bit (float)</h2>
   <table>
     <tr>
@@ -412,6 +435,45 @@
 const {Float16Array} = float16;
 
 (function () {
+
+  function createBfloat16Store() {
+    var conversionBuffer = new ArrayBuffer(4);
+    var float32 = new Float32Array(conversionBuffer);
+    var uint32 = new Uint32Array(conversionBuffer);
+    var bytes = new Uint8Array(2);
+
+    function getNumber() {
+      var bits = (bytes[0] | (bytes[1] << 8)) << 16;
+      uint32[0] = bits >>> 0;
+      return float32[0];
+    }
+
+    function setNumber(number) {
+      float32[0] = +number;
+      var bits = uint32[0];
+      // Round float32 to bfloat16 using round-to-nearest, ties-to-even.
+      var rounded = (bits & 0x7f800000) === 0x7f800000
+        ? bits >>> 16
+        : (bits + 0x7fff + ((bits >>> 16) & 1)) >>> 16;
+      bytes[0] = rounded & 0xff;
+      bytes[1] = rounded >>> 8;
+    }
+
+    return {
+      bytes: bytes,
+      getNumber: getNumber,
+      setNumber: setNumber,
+      roundNumber: function (number) {
+        float32[0] = +number;
+        var bits = uint32[0];
+        var rounded = (bits & 0x7f800000) === 0x7f800000
+          ? bits >>> 16
+          : (bits + 0x7fff + ((bits >>> 16) & 1)) >>> 16;
+        uint32[0] = rounded << 16;
+        return float32[0];
+      }
+    };
+  }
 
   function createIntegerStore(bits) {
     const byteLength = bits / 8;
@@ -739,13 +801,25 @@ const {Float16Array} = float16;
   }
 
   function load(array, exponentBits, input, output, help, hex) {
-    var bytes = new Uint8Array(array.buffer);
+    var bytes = array.bytes || new Uint8Array(array.buffer);
     var hexLength = bytes.length;
+
+    function getValue() {
+      return array.getNumber ? array.getNumber() : array[0];
+    }
+
+    function setValue(value) {
+      if (array.setNumber) {
+        array.setNumber(value);
+      } else {
+        array[0] = value;
+      }
+    }
 
     function reduceNumber(x) {
       var copy = bytes.length === 2 ? new Float16Array(1) : bytes.length === 4 ? new Float32Array(1) : new Float64Array(1);
       copy[0] = +x;
-      var value = copy[0];
+      var value = array.roundNumber ? array.roundNumber(x) : copy[0];
       x = value === 0 && 1 / value === -Infinity ? '-0' : value + '';
 
       if (x === 'NaN' || x === 'Infinity' || x === '-Infinity') {
@@ -762,8 +836,7 @@ const {Float16Array} = float16;
         // Try truncating
         var truncatedFraction = fraction.slice(0, -1);
         var text = whole + (truncatedFraction !== '.' ? truncatedFraction : '') + exponent;
-        copy[0] = +text;
-        var truncatedValue = copy[0];
+        var truncatedValue = array.roundNumber ? array.roundNumber(text) : (copy[0] = +text);
         if (truncatedValue === value) {
           fraction = truncatedFraction;
           x = text;
@@ -781,8 +854,7 @@ const {Float16Array} = float16;
           i--;
         }
         var text = whole + (roundedFraction !== '.' ? roundedFraction : '') + exponent;
-        copy[0] = +text;
-        var roundedValue = copy[0];
+        var roundedValue = array.roundNumber ? array.roundNumber(text) : (copy[0] = +text);
         if (roundedValue === value) {
           fraction = roundedFraction;
           x = text;
@@ -865,7 +937,7 @@ const {Float16Array} = float16;
       output.select();
     };
     output.oninput = function () {
-      array[0] = extractNumber();
+      setValue(extractNumber());
       render();
     };
     output.onblur = function () {
@@ -944,7 +1016,7 @@ const {Float16Array} = float16;
 
       // Figure out fraction
       var copyBytes = new Uint8Array(bytes);
-      var copy = bytes.length === 2 ? new Float16Array(copyBytes.buffer) : bytes.length === 4 ? new Float32Array(copyBytes.buffer) : new Float64Array(copyBytes.buffer);
+      var copy = array.getNumber ? null : (bytes.length === 2 ? new Float16Array(copyBytes.buffer) : bytes.length === 4 ? new Float32Array(copyBytes.buffer) : new Float64Array(copyBytes.buffer));
       for (var i = 0; i < exponentBits; i++) {
         var index = 1 + i;
         var byteIndex = bytes.length - (index >> 3) - 1;
@@ -955,7 +1027,15 @@ const {Float16Array} = float16;
       var signMask = 0x80;
       var sign = copyBytes[signIndex] & signMask;
       copyBytes[signIndex] &= ~signMask;
-      var fraction = copy[0];
+      var fraction;
+      if (array.getNumber) {
+        var fractionBits = (copyBytes[0] | (copyBytes[1] << 8)) << 16;
+        var fractionBuffer = new ArrayBuffer(4);
+        new Uint32Array(fractionBuffer)[0] = fractionBits >>> 0;
+        fraction = new Float32Array(fractionBuffer)[0];
+      } else {
+        fraction = copy[0];
+      }
 
       // Handle denormal numbers
       if (exponent === -exponentBias) {
@@ -965,13 +1045,13 @@ const {Float16Array} = float16;
 
       // Update views according to which input was edited
       if (document.activeElement === hex) {
-        var value = array[0];
+        var value = getValue();
         output.value = reduceNumber(value === 0 && 1 / value === -Infinity ? '-0' : value);
       } else if (document.activeElement === output) {
         var tmpBytes = bytes.slice().reverse();
         hex.value = toHexString(tmpBytes);
       } else { // This branch is for when the individual bits get toggled
-        var value = array[0];
+        var value = getValue();
         output.value = reduceNumber(value === 0 && 1 / value === -Infinity ? '-0' : value);
         var tmpBytes = bytes.slice().reverse();
         hex.value = toHexString(tmpBytes);
@@ -1006,6 +1086,9 @@ const {Float16Array} = float16;
   }
 
   load(new Float16Array([Math.PI]), 5, document.getElementById('input16'), document.getElementById('output16'), document.getElementById('help16'), document.getElementById('hex16'));
+  var bfloat16 = createBfloat16Store();
+  bfloat16.setNumber(Math.PI);
+  load(bfloat16, 8, document.getElementById('inputbfloat16'), document.getElementById('outputbfloat16'), document.getElementById('helpbfloat16'), document.getElementById('hexbfloat16'));
   load(new Float32Array([Math.PI]), 8, document.getElementById('input32'), document.getElementById('output32'), document.getElementById('help32'), document.getElementById('hex32'));
   load(new Float64Array([Math.PI]), 11, document.getElementById('input64'), document.getElementById('output64'), document.getElementById('help64'), document.getElementById('hex64'));
   loadInt(createIntegerStore(8), document.getElementById('inputi8'), document.getElementById('outputi8-signed'), document.getElementById('outputi8-unsigned'), document.getElementById('outputi8-hex'), document.getElementById('leftshifti8'), document.getElementById('rightshifti8'), document.getElementById('rightrightshifti8'));
